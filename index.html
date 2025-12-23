@@ -3,113 +3,159 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>英検クイズ マスター - 履歴機能付き</title>
+    <title>英検マスター Pro - 完全版</title>
     <style>
         :root {
             --apple-blue: #007AFF;
             --apple-green: #34C759;
             --apple-red: #FF3B30;
+            --apple-orange: #FF9500;
             --bg: #F2F2F7;
         }
         body { font-family: -apple-system, sans-serif; background: var(--bg); display: flex; flex-direction: column; align-items: center; padding: 20px; margin: 0; min-height: 100vh; }
-        .screen { width: 100%; max-width: 500px; display: none; background: white; padding: 30px; border-radius: 25px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); text-align: center; box-sizing: border-box; }
+        .screen { width: 100%; max-width: 500px; display: none; background: white; padding: 30px; border-radius: 25px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); text-align: center; box-sizing: border-box; position: relative; }
         .active { display: block; animation: fadeIn 0.3s ease; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
         
-        h1 { color: #1C1C1E; font-size: 28px; margin-bottom: 10px; }
-        .level-grid { display: grid; gap: 10px; margin-bottom: 20px; }
-        .level-btn { padding: 15px; font-size: 18px; font-weight: bold; border-radius: 12px; border: 2px solid var(--apple-blue); background: white; color: var(--apple-blue); cursor: pointer; }
+        /* 判定アイコン */
+        #feedback-icon { font-size: 100px; position: absolute; top: 40%; left: 50%; transform: translate(-50%, -50%); pointer-events: none; opacity: 0; z-index: 100; transition: 0.2s; }
+        .show-feedback { opacity: 0.9 !important; transform: translate(-50%, -50%) scale(1.2) !important; }
+
+        .level-btn { padding: 15px; font-size: 18px; font-weight: bold; border-radius: 12px; border: 2px solid var(--apple-blue); background: white; color: var(--apple-blue); cursor: pointer; margin-bottom: 10px; width: 100%; transition: 0.2s; }
         .level-btn.selected { background: var(--apple-blue); color: white; }
 
-        /* タイマー・クイズ装飾 */
         .timer-bar { width: 100%; height: 8px; background: #E5E5EA; border-radius: 4px; margin-bottom: 20px; overflow: hidden; }
-        .timer-fill { height: 100%; background: var(--apple-blue); width: 100%; transition: width 0.1s linear; }
-        .q-text { font-size: 32px; font-weight: bold; margin-bottom: 20px; }
+        .timer-fill { height: 100%; background: var(--apple-blue); width: 100%; }
+        
+        .q-text { font-size: 38px; font-weight: bold; margin-bottom: 20px; color: #1C1C1E; position: relative; }
         .options { display: grid; gap: 12px; }
-        .opt-btn { padding: 18px; font-size: 18px; border: 2px solid #F2F2F7; border-radius: 15px; background: white; text-align: left; cursor: pointer; }
-        .correct { background: var(--apple-green) !important; color: white; border-color: var(--apple-green); }
-        .wrong { background: var(--apple-red) !important; color: white; border-color: var(--apple-red); }
+        .opt-btn { padding: 18px; font-size: 18px; border: 2px solid #F2F2F7; border-radius: 15px; background: white; text-align: left; cursor: pointer; transition: 0.1s; }
+        .correct { background: var(--apple-green) !important; color: white !important; border-color: var(--apple-green) !important; }
+        .wrong { background: var(--apple-red) !important; color: white !important; border-color: var(--apple-red) !important; }
 
-        /* 履歴・復習エリア */
-        .history-area, .mistake-area { margin-top: 20px; text-align: left; background: #f9f9fb; padding: 15px; border-radius: 15px; border: 1px solid #e5e5ea; }
-        .history-item { font-size: 14px; padding: 5px 0; border-bottom: 1px solid #eee; display: flex; justify-content: space-between; }
-        .start-btn { background: var(--apple-blue); color: white; border: none; padding: 15px 40px; border-radius: 30px; font-size: 20px; font-weight: bold; width: 100%; margin-top: 10px; }
-        .clear-btn { background: none; border: none; color: var(--apple-red); font-size: 12px; cursor: pointer; margin-top: 10px; }
+        .history-area { margin-top: 20px; text-align: left; background: #f9f9fb; padding: 15px; border-radius: 15px; font-size: 13px; border: 1px solid #eee; }
+        .start-btn { background: var(--apple-blue); color: white; border: none; padding: 18px; border-radius: 30px; font-size: 20px; font-weight: bold; width: 100%; margin-top: 10px; cursor: pointer; box-shadow: 0 4px 15px rgba(0,122,255,0.3); }
+        .badge { font-size: 14px; background: var(--apple-orange); color: white; padding: 2px 10px; border-radius: 10px; vertical-align: middle; margin-left: 10px; position: absolute; top: -20px; right: 0; }
+        #combo-display { font-size: 24px; font-weight: bold; color: var(--apple-orange); margin-bottom: 10px; min-height: 30px; }
     </style>
 </head>
 <body>
 
+    <div id="feedback-icon"></div>
+
     <div id="home-screen" class="screen active">
-        <h1>英検クイズ マスター</h1>
-        <div class="level-grid">
+        <h1>英検マスター Pro</h1>
+        <p style="color:#666;">AIがあなたの弱点を分析中</p>
+        <div id="levels">
             <button class="level-btn" onclick="selectLevel('3級', this)">3級</button>
             <button class="level-btn selected" onclick="selectLevel('準2級', this)">準2級</button>
             <button class="level-btn" onclick="selectLevel('2級', this)">2級</button>
         </div>
         <button class="start-btn" onclick="startQuiz()">学習開始！</button>
-
         <div class="history-area">
-            <h3 style="margin-top:0;">📊 学習履歴</h3>
+            <h3 style="margin:0 0 10px 0;">📊 学習履歴</h3>
             <div id="history-list">履歴はまだありません</div>
-            <button class="clear-btn" onclick="clearHistory()">履歴をリセット</button>
         </div>
     </div>
 
     <div id="quiz-screen" class="screen">
+        <div id="combo-display">0 COMBO</div>
         <div id="current-info" style="color:#8E8E93; margin-bottom:10px;"></div>
         <div class="timer-bar"><div class="timer-fill" id="timer"></div></div>
-        <button onclick="speak()" style="background:none; border:none; font-size:24px; cursor:pointer;">🔊 発音を聞く</button>
-        <div class="q-text" id="q-text"></div>
+        <div class="q-text">
+            <span id="q-word"></span>
+            <span id="target-badge"></span>
+        </div>
         <div class="options" id="options"></div>
+        <button onclick="speak()" style="margin-top:25px; background:none; border:none; color:var(--apple-blue); font-size:18px; cursor:pointer; font-weight:bold;">🔊 再生</button>
     </div>
 
     <div id="result-screen" class="screen">
         <h1>結果発表</h1>
-        <h2 id="final-score" style="font-size: 40px; color: var(--apple-blue);"></h2>
-        <div id="mistake-list" class="mistake-area"></div>
+        <h2 id="final-score" style="font-size: 45px; color: var(--apple-blue); margin: 10px 0;"></h2>
+        <p id="max-combo-info" style="color:var(--apple-orange); font-weight:bold;"></p>
+        <div id="mistake-list" style="text-align:left; background:#fff0f0; padding:15px; border-radius:15px; margin-top:20px; max-height:200px; overflow-y:auto;"></div>
         <button class="start-btn" onclick="goToHome()">ホームに戻る</button>
     </div>
 
     <script>
-        // 単語データ
         const dictionary = {
             "3級": [
-                {q: "Achieve", a: "〜を達成する", d: ["〜を捨てる", "〜を借りる", "〜を避ける"]},
-                {q: "Anxious", a: "心配して", d: ["退屈な", "勇気のある", "満足した"]},
-                {q: "Believe", a: "〜を信じる", d: ["〜を疑う", "〜を忘れる", "〜を壊す"]},
-                {q: "Century", a: "一世紀(100年)", d: ["十年間", "季節", "時代"]},
-                {q: "Decrease", a: "減少する", d: ["増加する", "安定する", "移動する"]},
+                {q: "Achieve", a: "達成する", d: ["捨てる", "借りる", "避ける"]},
+                {q: "Anxious", a: "心配して", d: ["退屈な", "勇敢な", "満足した"]},
+                {q: "Believe", a: "信じる", d: ["疑う", "忘れる", "壊す"]},
+                {q: "Century", a: "1世紀", d: ["10年間", "季節", "時代"]},
+                {q: "Decrease", a: "減少する", d: ["増加する", "移動する", "安定する"]},
                 {q: "Effort", a: "努力", d: ["結果", "才能", "運"]},
                 {q: "Foreign", a: "外国の", d: ["地元の", "現代の", "安全な"]},
-                {q: "Government", a: "政府", d: ["会社", "学校", "市場"]},
-                {q: "Healthy", a: "健康な", d: ["危険な", "裕福な", "静かな"]},
-                {q: "Improve", a: "〜を改善する", d: ["〜を汚す", "〜を止める", "〜を隠す"]}
+                {q: "Government", a: "政府", d: ["会社", "市場", "学校"]},
+                {q: "Healthy", a: "健康な", d: ["危険な", "静かな", "裕福な"]},
+                {q: "Improve", a: "改善する", d: ["汚す", "隠す", "止める"]},
+                {q: "Ancient", a: "古代の", d: ["現代の", "未来の", "流行の"]},
+                {q: "Baggage", a: "手荷物", d: ["チケット", "座席", "お土産"]},
+                {q: "Climate", a: "気候", d: ["天気", "温度", "季節"]},
+                {q: "Education", a: "教育", d: ["娯楽", "運動", "仕事"]},
+                {q: "Journal", a: "雑誌・日記", d: ["辞書", "手紙", "教科書"]},
+                {q: "Medicine", a: "薬", d: ["食事", "睡眠", "運動"]},
+                {q: "Ordinary", a: "普通の", d: ["珍しい", "高価な", "新しい"]},
+                {q: "Reduce", a: "減らす", d: ["増やす", "運ぶ", "守る"]},
+                {q: "Various", a: "様々な", d: ["単一の", "退屈な", "同じ"]},
+                {q: "Knowledge", a: "知識", d: ["想像", "噂", "記憶"]}
             ],
             "準2級": [
                 {q: "Appropriate", a: "適切な", d: ["突然の", "正確な", "複雑な"]},
-                {q: "Describe", a: "〜を描写する", d: ["〜を破壊する", "〜を無視する", "〜を予約する"]},
+                {q: "Describe", a: "描写する", d: ["破壊する", "無視する", "予約する"]},
                 {q: "Opportunity", a: "機会", d: ["反対", "結論", "責任"]},
-                {q: "Recognize", a: "〜を認める", d: ["〜を無視する", "〜を批判する", "〜を隠す"]},
-                {q: "Environment", a: "環境", d: ["娯楽", "政府", "設備"]},
-                {q: "Contribute", a: "貢献する", d: ["消費する", "混乱させる", "完成させる"]}
+                {q: "Recognize", a: "認める", d: ["無視する", "批判する", "隠す"]},
+                {q: "Contribute", a: "貢献する", d: ["消費する", "完成させる", "混乱させる"]},
+                {q: "Prevent", a: "防ぐ", d: ["促進する", "許す", "準備する"]},
+                {q: "Significant", a: "重要な", d: ["個別の", "伝統的な", "一時的な"]},
+                {q: "Resource", a: "資源", d: ["結果", "責任", "理由"]},
+                {q: "Encourage", a: "励ます", d: ["禁止する", "驚かせる", "落胆させる"]},
+                {q: "Analyze", a: "分析する", d: ["耐える", "強調する", "維持する"]},
+                {q: "Economy", a: "経済", d: ["生態", "教育", "選挙"]},
+                {q: "Specific", a: "特定の", d: ["一般的な", "巨大な", "曖昧な"]},
+                {q: "Candidate", a: "候補者", d: ["当選者", "観客", "審判"]},
+                {q: "Facility", a: "施設・設備", d: ["自然", "道具", "才能"]},
+                {q: "Gradually", a: "徐々に", d: ["突然", "一瞬で", "永遠に"]},
+                {q: "Particular", a: "特定の", d: ["一般的な", "普通の", "珍しい"]},
+                {q: "Theory", a: "理論", d: ["実践", "事実", "空想"]},
+                {q: "Unique", a: "独特な", d: ["共通の", "普通の", "古い"]},
+                {q: "Vehicle", a: "乗り物", d: ["建物", "道", "運転手"]},
+                {q: "Persuade", a: "説得する", d: ["強制する", "警告する", "がっかりさせる"]}
             ],
             "2級": [
+                {q: "Abolish", a: "廃止する", d: ["設立する", "維持する", "改善する"]},
+                {q: "Biological", a: "生物学的な", d: ["物理的な", "化学的な", "心理的な"]},
+                {q: "Counterfeit", a: "偽造の", d: ["本物の", "高価な", "古い"]},
+                {q: "Deprive", a: "奪う", d: ["与える", "救う", "貸す"]},
+                {q: "Enthusiasm", a: "情熱", d: ["無関心", "恐怖", "怒り"]},
+                {q: "Fluctuate", a: "変動する", d: ["安定する", "停止する", "増加する"]},
+                {q: "Guarantee", a: "保証する", d: ["拒否する", "疑う", "無視する"]},
+                {q: "Hypothesis", a: "仮説", d: ["結論", "事実", "証明"]},
+                {q: "Inevitably", a: "必然的に", d: ["偶然に", "おそらく", "まれに"]},
+                {q: "Legislation", a: "法律", d: ["行政", "司法", "違反"]},
+                {q: "Obsolete", a: "時代遅れの", d: ["最新の", "便利な", "高価な"]},
+                {q: "Prejudice", a: "偏見", d: ["公平", "理解", "正義"]},
+                {q: "Simultaneous", a: "同時の", d: ["別々の", "以前の", "遅れた"]},
+                {q: "Vulnerable", a: "脆弱な", d: ["強力な", "安全な", "不変の"]},
+                {q: "Agriculture", a: "農業", d: ["工業", "商業", "建築"]},
                 {q: "Accurate", a: "正確な", d: ["貴重な", "適切な", "複雑な"]},
-                {q: "Admire", a: "称賛する", d: ["無視する", "避ける", "非難する"]},
-                {q: "Artificial", a: "人工的な", d: ["自然な", "伝統的な", "近代的な"]},
-                {q: "Capacity", a: "能力", d: ["責任", "協力", "目的地"]},
-                {q: "Commercial", a: "商業的な", d: ["個人的な", "政治的な", "学術的な"]}
+                {q: "Commercial", a: "商業的な", d: ["個人的な", "政治的な", "学術的な"]},
+                {q: "Objective", a: "客観的な", d: ["主観的な", "伝統的な", "感情的な"]},
+                {q: "Priority", a: "優先事項", d: ["過去", "背景", "娯楽"]},
+                {q: "Welfare", a: "福祉", d: ["富", "教育", "娯楽"]}
             ]
         };
 
         let currentLevel = "準2級";
-        let currentIdx = 0;
-        let score = 0;
-        let timerInterval;
-        let timeLeft = 100;
-        let currentMistakes = [];
+        let shuffledQuestions = [];
+        let currentIdx = 0, score = 0, combo = 0, maxCombo = 0;
+        let timerInterval, timeLeft = 100, currentMistakes = [];
 
-        // ページ読み込み時に履歴を表示
+        // 苦手度と履歴の管理
+        let stats = JSON.parse(localStorage.getItem('eiken_stats_v2') || '{}');
+
         window.onload = updateHistoryDisplay;
 
         function selectLevel(lvl, btn) {
@@ -119,22 +165,36 @@
         }
 
         function startQuiz() {
+            const baseWords = [...dictionary[currentLevel]];
+            // 苦手スコアが高いものを優先しつつ、20問を抽出
+            shuffledQuestions = baseWords.sort((a, b) => {
+                const wA = stats[a.q] || 0;
+                const wB = stats[b.q] || 0;
+                return (Math.random() * 0.6 + wB) - (Math.random() * 0.6 + wA);
+            }).slice(0, 20);
+
             showScreen('quiz-screen');
-            currentIdx = 0; score = 0; currentMistakes = [];
-            document.getElementById('mistake-list').innerHTML = '<h3>今回のミス単語</h3>';
+            currentIdx = 0; score = 0; combo = 0; maxCombo = 0; currentMistakes = [];
             loadQuestion();
         }
 
         function loadQuestion() {
-            const questions = dictionary[currentLevel];
-            if (currentIdx >= questions.length) {
-                saveResult(); // 結果を保存
-                showResult();
-                return;
+            if (currentIdx >= shuffledQuestions.length) { saveResult(); showResult(); return; }
+            
+            const data = shuffledQuestions[currentIdx];
+            document.getElementById('current-info').innerText = `${currentLevel} - ${currentIdx + 1} / ${shuffledQuestions.length}`;
+            document.getElementById('q-word').innerText = data.q;
+            
+            // 苦手バッジ表示
+            const badgeEl = document.getElementById('target-badge');
+            if ((stats[data.q] || 0) >= 2) {
+                badgeEl.innerText = "苦手!";
+                badgeEl.className = "badge";
+            } else {
+                badgeEl.innerText = "";
+                badgeEl.className = "";
             }
-            const data = questions[currentIdx];
-            document.getElementById('current-info').innerText = `${currentLevel} - ${currentIdx + 1} / ${questions.length}`;
-            document.getElementById('q-text').innerText = data.q;
+            
             const opts = [data.a, ...data.d].sort(() => Math.random() - 0.5);
             const container = document.getElementById('options');
             container.innerHTML = '';
@@ -146,106 +206,91 @@
                 container.appendChild(btn);
             });
             startTimer();
-            setTimeout(speak, 500);
+            setTimeout(speak, 400);
+        }
+
+        function checkAnswer(isCorrect, btn, data) {
+            clearInterval(timerInterval);
+            document.querySelectorAll('.opt-btn').forEach(b => b.disabled = true);
+            const feedbackIcon = document.getElementById('feedback-icon');
+
+            if (isCorrect) {
+                btn.classList.add('correct');
+                feedbackIcon.innerText = "⭕️";
+                feedbackIcon.style.color = "var(--apple-green)";
+                score++; combo++;
+                if(combo > maxCombo) maxCombo = combo;
+                if (stats[data.q] > 0) stats[data.q]--; 
+            } else {
+                if(btn) btn.classList.add('wrong');
+                feedbackIcon.innerText = "❌";
+                feedbackIcon.style.color = "var(--apple-red)";
+                combo = 0;
+                currentMistakes.push(`${data.q} : ${data.a}`);
+                stats[data.q] = (stats[data.q] || 0) + 2; // 苦手スコア加算
+                document.querySelectorAll('.opt-btn').forEach(b => { if(b.innerText === data.a) b.classList.add('correct'); });
+            }
+            
+            localStorage.setItem('eiken_stats_v2', JSON.stringify(stats));
+            document.getElementById('combo-display').innerText = `${combo} COMBO`;
+            feedbackIcon.classList.add('show-feedback');
+            setTimeout(() => { 
+                feedbackIcon.classList.remove('show-feedback'); 
+                currentIdx++; 
+                loadQuestion(); 
+            }, 1000);
         }
 
         function startTimer() {
             clearInterval(timerInterval);
             timeLeft = 100;
             timerInterval = setInterval(() => {
-                timeLeft -= 1.2;
+                timeLeft -= 2.0; 
                 document.getElementById('timer').style.width = timeLeft + "%";
-                if (timeLeft <= 0) {
-                    clearInterval(timerInterval);
-                    checkAnswer(false, null, dictionary[currentLevel][currentIdx]);
-                }
+                if (timeLeft <= 0) { clearInterval(timerInterval); checkAnswer(false, null, shuffledQuestions[currentIdx]); }
             }, 100);
         }
 
-        function checkAnswer(isCorrect, btn, data) {
-            clearInterval(timerInterval);
-            document.querySelectorAll('.opt-btn').forEach(b => b.disabled = true);
-            if (isCorrect) {
-                if(btn) btn.classList.add('correct');
-                score++;
-            } else {
-                if(btn) btn.classList.add('wrong');
-                currentMistakes.push(`${data.q} : ${data.a}`);
-                document.querySelectorAll('.opt-btn').forEach(b => { if(b.innerText === data.a) b.classList.add('correct'); });
-            }
-            setTimeout(() => { currentIdx++; loadQuestion(); }, 1200);
-        }
-
         function speak() {
-            const word = document.getElementById('q-text').innerText;
+            const word = document.getElementById('q-word').innerText;
             const uttr = new SpeechSynthesisUtterance(word);
+            const voices = speechSynthesis.getVoices();
+            const preferred = voices.find(v => (v.name.includes('Samantha') || v.name.includes('Daniel')) && v.lang.includes('en'));
+            if (preferred) uttr.voice = preferred;
             uttr.lang = 'en-US';
-            uttr.rate = 0.85; 
+            uttr.rate = 0.85;
             speechSynthesis.cancel();
             speechSynthesis.speak(uttr);
         }
 
-        // 履歴の保存
         function saveResult() {
-            const history = JSON.parse(localStorage.getItem('eiken_history') || '[]');
+            const history = JSON.parse(localStorage.getItem('eiken_history_v2') || '[]');
             const now = new Date();
-            const dateStr = `${now.getMonth()+1}/${now.getDate()} ${now.getHours()}:${now.getMinutes().toString().padStart(2, '0')}`;
-            
-            history.unshift({
-                date: dateStr,
-                level: currentLevel,
-                score: score,
-                total: dictionary[currentLevel].length
-            });
-
-            // 最新10件まで保存
-            localStorage.setItem('eiken_history', JSON.stringify(history.slice(0, 10)));
+            const dateStr = `${now.getMonth()+1}/${now.getDate()} ${now.getHours()}:${now.getMinutes().toString().padStart(2,'0')}`;
+            history.unshift({ date: dateStr, level: currentLevel, score, total: shuffledQuestions.length });
+            localStorage.setItem('eiken_history_v2', JSON.stringify(history.slice(0, 5)));
             updateHistoryDisplay();
         }
 
         function updateHistoryDisplay() {
-            const history = JSON.parse(localStorage.getItem('eiken_history') || '[]');
+            const history = JSON.parse(localStorage.getItem('eiken_history_v2') || '[]');
             const list = document.getElementById('history-list');
-            if (history.length === 0) {
-                list.innerHTML = '履歴はまだありません';
-                return;
-            }
-            list.innerHTML = history.map(item => `
-                <div class="history-item">
-                    <span>${item.date} [${item.level}]</span>
-                    <strong>${item.score} / ${item.total}</strong>
-                </div>
-            `).join('');
-        }
-
-        function clearHistory() {
-            if(confirm('履歴をすべて消去しますか？')) {
-                localStorage.removeItem('eiken_history');
-                updateHistoryDisplay();
-            }
+            list.innerHTML = history.length ? history.map(i => `<div style="padding:5px 0; border-bottom:1px solid #eee; display:flex; justify-content:space-between;"><span>${i.date} [${i.level}]</span><b>${i.score}/${i.total}</b></div>`).join('') : '履歴なし';
         }
 
         function showResult() {
             showScreen('result-screen');
-            document.getElementById('final-score').innerText = `${score} / ${dictionary[currentLevel].length}`;
+            document.getElementById('final-score').innerText = `${score} / ${shuffledQuestions.length}`;
+            document.getElementById('max-combo-info').innerText = `最高コンボ: ${maxCombo}`;
             const mList = document.getElementById('mistake-list');
-            if(currentMistakes.length === 0) {
-                mList.innerHTML += "<p>満点！天才です！</p>";
-            } else {
-                currentMistakes.forEach(m => {
-                    const div = document.createElement('div');
-                    div.innerText = "❌ " + m;
-                    mList.appendChild(div);
-                });
-            }
+            mList.innerHTML = '<h3>ミスした単語</h3>';
+            if(currentMistakes.length === 0) mList.innerHTML += "<p>満点！素晴らしい！</p>";
+            currentMistakes.forEach(m => { const d = document.createElement('div'); d.innerText = "❌ " + m; mList.appendChild(d); });
         }
 
-        function showScreen(id) {
-            document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
-            document.getElementById(id).classList.add('active');
-        }
-
+        function showScreen(id) { document.querySelectorAll('.screen').forEach(s => s.classList.remove('active')); document.getElementById(id).classList.add('active'); }
         function goToHome() { showScreen('home-screen'); }
+        speechSynthesis.onvoiceschanged = () => { speechSynthesis.getVoices(); };
     </script>
 </body>
 </html>
