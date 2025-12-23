@@ -12,21 +12,13 @@
             --bg: #F2F2F7;
         }
         body { font-family: -apple-system, sans-serif; background: var(--bg); display: flex; flex-direction: column; align-items: center; padding: 20px; margin: 0; min-height: 100vh; }
-        
         .screen { width: 100%; max-width: 500px; display: none; background: white; padding: 30px; border-radius: 25px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); text-align: center; box-sizing: border-box; }
         .active { display: block; animation: fadeIn 0.3s ease; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-
         h1 { color: #1C1C1E; font-size: 28px; margin-bottom: 10px; }
-        p { color: #8E8E93; margin-bottom: 30px; }
-
-        /* ホーム画面の級選択ボタン */
         .level-grid { display: grid; gap: 15px; margin-bottom: 30px; }
-        .level-btn { padding: 20px; font-size: 20px; font-weight: bold; border-radius: 15px; border: 2px solid var(--apple-blue); background: white; color: var(--apple-blue); cursor: pointer; transition: 0.2s; }
-        .level-btn:active { background: var(--apple-blue); color: white; transform: scale(0.98); }
+        .level-btn { padding: 20px; font-size: 20px; font-weight: bold; border-radius: 15px; border: 2px solid var(--apple-blue); background: white; color: var(--apple-blue); cursor: pointer; }
         .level-btn.selected { background: var(--apple-blue); color: white; }
-
-        /* クイズ画面 */
         .timer-bar { width: 100%; height: 8px; background: #E5E5EA; border-radius: 4px; margin-bottom: 20px; overflow: hidden; }
         .timer-fill { height: 100%; background: var(--apple-blue); width: 100%; transition: width 0.1s linear; }
         .q-text { font-size: 32px; font-weight: bold; margin-bottom: 20px; }
@@ -34,17 +26,15 @@
         .opt-btn { padding: 18px; font-size: 18px; border: 2px solid #F2F2F7; border-radius: 15px; background: white; text-align: left; cursor: pointer; }
         .correct { background: var(--apple-green) !important; color: white; border-color: var(--apple-green); }
         .wrong { background: var(--apple-red) !important; color: white; border-color: var(--apple-red); }
-
-        /* 苦手リスト */
-        .mistake-area { margin-top: 20px; text-align: left; background: #FFF5F5; padding: 15px; border-radius: 15px; max-height: 150px; overflow-y: auto; }
-        .start-btn { background: var(--apple-blue); color: white; border: none; padding: 15px 40px; border-radius: 30px; font-size: 20px; font-weight: bold; margin-top: 20px; width: 100%; }
+        .mistake-area { margin-top: 20px; text-align: left; background: #FFF5F5; padding: 15px; border-radius: 15px; max-height: 200px; overflow-y: auto; }
+        .start-btn { background: var(--apple-blue); color: white; border: none; padding: 15px 40px; border-radius: 30px; font-size: 20px; font-weight: bold; width: 100%; margin-top: 10px; }
     </style>
 </head>
 <body>
 
     <div id="home-screen" class="screen active">
         <h1>英検クイズ マスター</h1>
-        <p>級を選択してスタートしてください</p>
+        <p>級を選択してください</p>
         <div class="level-grid">
             <button class="level-btn" onclick="selectLevel('3級', this)">3級</button>
             <button class="level-btn selected" onclick="selectLevel('準2級', this)">準2級</button>
@@ -56,8 +46,8 @@
     <div id="quiz-screen" class="screen">
         <div id="current-info" style="color:#8E8E93; margin-bottom:10px;"></div>
         <div class="timer-bar"><div class="timer-fill" id="timer"></div></div>
-        <button onclick="speak()" style="background:none; border:none; font-size:24px; cursor:pointer;">🔊 再生</button>
-        <div class="q-text" id="q-text">Loading...</div>
+        <button onclick="speak()" style="background:none; border:none; font-size:24px; cursor:pointer;">🔊 発音を聞く</button>
+        <div class="q-text" id="q-text"></div>
         <div class="options" id="options"></div>
     </div>
 
@@ -68,14 +58,37 @@
         <button class="start-btn" onclick="goToHome()">ホームに戻る</button>
     </div>
 
-    <script src="data.js"></script>
-
     <script>
-        // 予備データ（data.js が読み込めなかった時用）
-        const backupData = {
-            "3級": [{q: "Achieve", a: "〜を達成する", d: ["〜を捨てる", "〜を借りる", "〜を避ける"]}],
-            "準2級": [{q: "Appropriate", a: "適切な", d: ["突然の", "正確な", "複雑な"]}],
-            "2級": [{q: "Accurate", a: "正確な", d: ["貴重な", "適切な", "複雑な"]}]
+        // 【ここに全ての単語データを合体させました】
+        const dictionary = {
+            "3級": [
+                {q: "Achieve", a: "〜を達成する", d: ["〜を捨てる", "〜を借りる", "〜を避ける"]},
+                {q: "Anxious", a: "心配して", d: ["退屈な", "勇気のある", "満足した"]},
+                {q: "Believe", a: "〜を信じる", d: ["〜を疑う", "〜を忘れる", "〜を壊す"]},
+                {q: "Century", a: "一世紀(100年)", d: ["十年間", "季節", "時代"]},
+                {q: "Decrease", a: "減少する", d: ["増加する", "安定する", "移動する"]},
+                {q: "Effort", a: "努力", d: ["結果", "才能", "運"]},
+                {q: "Foreign", a: "外国の", d: ["地元の", "現代の", "安全な"]},
+                {q: "Government", a: "政府", d: ["会社", "学校", "市場"]},
+                {q: "Healthy", a: "健康な", d: ["危険な", "裕福な", "静かな"]},
+                {q: "Improve", a: "〜を改善する", d: ["〜を汚す", "〜を止める", "〜を隠す"]}
+                // ...ここにさらに追加可能
+            ],
+            "準2級": [
+                {q: "Appropriate", a: "適切な", d: ["突然の", "正確な", "複雑な"]},
+                {q: "Describe", a: "〜を描写する", d: ["〜を破壊する", "〜を無視する", "〜を予約する"]},
+                {q: "Opportunity", a: "機会", d: ["反対", "結論", "責任"]},
+                {q: "Recognize", a: "〜を認める", d: ["〜を無視する", "〜を批判する", "〜を隠す"]},
+                {q: "Environment", a: "環境", d: ["娯楽", "政府", "設備"]},
+                {q: "Contribute", a: "貢献する", d: ["消費する", "混乱させる", "完成させる"]}
+            ],
+            "2級": [
+                {q: "Accurate", a: "正確な", d: ["貴重な", "適切な", "複雑な"]},
+                {q: "Admire", a: "称賛する", d: ["無視する", "避ける", "非難する"]},
+                {q: "Artificial", a: "人工的な", d: ["自然な", "伝統的な", "近代的な"]},
+                {q: "Capacity", a: "能力", d: ["責任", "協力", "目的地"]},
+                {q: "Commercial", a: "商業的な", d: ["個人的な", "政治的な", "学術的な"]}
+            ]
         };
 
         let currentLevel = "準2級";
@@ -85,14 +98,12 @@
         let timeLeft = 100;
         let currentMistakes = [];
 
-        // 級の選択
         function selectLevel(lvl, btn) {
             currentLevel = lvl;
             document.querySelectorAll('.level-btn').forEach(b => b.classList.remove('selected'));
             btn.classList.add('selected');
         }
 
-        // クイズ開始
         function startQuiz() {
             showScreen('quiz-screen');
             currentIdx = 0;
@@ -103,23 +114,17 @@
         }
 
         function loadQuestion() {
-            // data.js があればそちらを、なければ backupData を使用
-            const db = (typeof dictionary !== 'undefined') ? dictionary : backupData;
-            const questions = db[currentLevel];
-            
+            const questions = dictionary[currentLevel];
             if (currentIdx >= questions.length) {
                 showResult();
                 return;
             }
-
             const data = questions[currentIdx];
-            document.getElementById('current-info').innerText = `${currentLevel} - 第 ${currentIdx + 1} 問 / 全 ${questions.length} 問`;
+            document.getElementById('current-info').innerText = `${currentLevel} - ${currentIdx + 1} / ${questions.length}`;
             document.getElementById('q-text').innerText = data.q;
-            
             const opts = [data.a, ...data.d].sort(() => Math.random() - 0.5);
             const container = document.getElementById('options');
             container.innerHTML = '';
-            
             opts.forEach(opt => {
                 const btn = document.createElement('button');
                 btn.className = 'opt-btn';
@@ -127,7 +132,6 @@
                 btn.onclick = () => checkAnswer(opt === data.a, btn, data);
                 container.appendChild(btn);
             });
-
             startTimer();
             setTimeout(speak, 500);
         }
@@ -136,83 +140,50 @@
             clearInterval(timerInterval);
             timeLeft = 100;
             timerInterval = setInterval(() => {
-                timeLeft -= 1.0; // 約10秒で終了
+                timeLeft -= 1.2;
                 document.getElementById('timer').style.width = timeLeft + "%";
                 if (timeLeft <= 0) {
                     clearInterval(timerInterval);
-                    checkAnswer(false, null, (typeof dictionary !== 'undefined' ? dictionary : backupData)[currentLevel][currentIdx]);
+                    checkAnswer(false, null, dictionary[currentLevel][currentIdx]);
                 }
             }, 100);
         }
 
         function checkAnswer(isCorrect, btn, data) {
             clearInterval(timerInterval);
-            const buttons = document.querySelectorAll('.opt-btn');
-            buttons.forEach(b => b.disabled = true);
-
+            document.querySelectorAll('.opt-btn').forEach(b => b.disabled = true);
             if (isCorrect) {
                 if(btn) btn.classList.add('correct');
                 score++;
             } else {
                 if(btn) btn.classList.add('wrong');
                 currentMistakes.push(`${data.q} : ${data.a}`);
-                // 正解を表示
-                buttons.forEach(b => { if(b.innerText === data.a) b.classList.add('correct'); });
+                document.querySelectorAll('.opt-btn').forEach(b => { if(b.innerText === data.a) b.classList.add('correct'); });
             }
-
-            setTimeout(() => {
-                currentIdx++;
-                loadQuestion();
-            }, 1200);
+            setTimeout(() => { currentIdx++; loadQuestion(); }, 1200);
         }
 
         function speak() {
-    const word = document.getElementById('q-text').innerText;
-    
-    // 読み上げの準備
-    const uttr = new SpeechSynthesisUtterance(word);
-    
-    // 利用可能な音声リストを取得
-    const voices = speechSynthesis.getVoices();
-    
-    // iPad/iPhoneで最もクリアな英語音声 (SamanthaやDanielなど) を探す
-    const preferredVoice = voices.find(voice => 
-        (voice.name.includes('Samantha') || voice.name.includes('Daniel') || voice.name.includes('Karen')) 
-        && voice.lang.includes('en')
-    );
-
-    if (preferredVoice) {
-        uttr.voice = preferredVoice;
-    }
-
-    uttr.lang = 'en-US'; // アメリカ英語に設定
-    uttr.rate = 0.9;     // 速度：少しだけゆっくり（聞き取りやすく）
-    uttr.pitch = 1.0;    // 高さ：標準
-
-    // 前の読み上げが残っていたらキャンセルして即座に再生
-    speechSynthesis.cancel();
-    speechSynthesis.speak(uttr);
-}
-
-// 最初の起動時に音声を準備する（ブラウザのバグ対策）
-speechSynthesis.onvoiceschanged = () => {
-    speechSynthesis.getVoices();
-};
+            const word = document.getElementById('q-text').innerText;
+            const uttr = new SpeechSynthesisUtterance(word);
+            const voices = speechSynthesis.getVoices();
+            const preferredVoice = voices.find(v => (v.name.includes('Samantha') || v.name.includes('Daniel')) && v.lang.includes('en'));
+            if (preferredVoice) uttr.voice = preferredVoice;
+            uttr.lang = 'en-US';
+            uttr.rate = 0.85; 
+            speechSynthesis.cancel();
+            speechSynthesis.speak(uttr);
+        }
 
         function showResult() {
             showScreen('result-screen');
-            document.getElementById('final-score').innerText = `${score} 点`;
+            document.getElementById('final-score').innerText = `${score} / ${dictionary[currentLevel].length}`;
             const mList = document.getElementById('mistake-list');
-            if(currentMistakes.length === 0) {
-                mList.innerHTML += "<p>全問正解！素晴らしい！</p>";
-            } else {
-                currentMistakes.forEach(m => {
-                    const div = document.createElement('div');
-                    div.style.padding = "5px 0";
-                    div.innerText = "❌ " + m;
-                    mList.appendChild(div);
-                });
-            }
+            currentMistakes.forEach(m => {
+                const div = document.createElement('div');
+                div.innerText = "❌ " + m;
+                mList.appendChild(div);
+            });
         }
 
         function showScreen(id) {
@@ -222,6 +193,7 @@ speechSynthesis.onvoiceschanged = () => {
 
         function goToHome() { showScreen('home-screen'); }
 
+        speechSynthesis.onvoiceschanged = () => { speechSynthesis.getVoices(); };
     </script>
 </body>
 </html>
