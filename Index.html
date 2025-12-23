@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>英検マスター AI Quiz</title>
+    <title>英検クイズ マスター</title>
     <style>
         :root {
             --apple-blue: #007AFF;
@@ -11,101 +11,109 @@
             --apple-red: #FF3B30;
             --bg: #F2F2F7;
         }
-        body { font-family: -apple-system, sans-serif; background: var(--bg); display: flex; flex-direction: column; align-items: center; padding: 20px; margin: 0; }
-        .container { width: 100%; max-width: 500px; background: white; padding: 25px; border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); position: relative; }
+        body { font-family: -apple-system, sans-serif; background: var(--bg); display: flex; flex-direction: column; align-items: center; padding: 20px; margin: 0; min-height: 100vh; }
         
-        /* 1. 級の切り替え */
-        .level-selector { display: flex; justify-content: space-around; margin-bottom: 20px; }
-        .level-btn { padding: 8px 15px; border-radius: 10px; border: 1px solid var(--apple-blue); background: white; color: var(--apple-blue); cursor: pointer; }
-        .level-btn.active { background: var(--apple-blue); color: white; }
+        .screen { width: 100%; max-width: 500px; display: none; background: white; padding: 30px; border-radius: 25px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); text-align: center; box-sizing: border-box; }
+        .active { display: block; animation: fadeIn 0.3s ease; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 
-        /* 4. タイマー */
-        .timer-bar { width: 100%; height: 6px; background: #E5E5EA; border-radius: 3px; margin-bottom: 20px; overflow: hidden; }
+        h1 { color: #1C1C1E; font-size: 28px; margin-bottom: 10px; }
+        p { color: #8E8E93; margin-bottom: 30px; }
+
+        /* ホーム画面の級選択ボタン */
+        .level-grid { display: grid; gap: 15px; margin-bottom: 30px; }
+        .level-btn { padding: 20px; font-size: 20px; font-weight: bold; border-radius: 15px; border: 2px solid var(--apple-blue); background: white; color: var(--apple-blue); cursor: pointer; transition: 0.2s; }
+        .level-btn:active { background: var(--apple-blue); color: white; transform: scale(0.98); }
+        .level-btn.selected { background: var(--apple-blue); color: white; }
+
+        /* クイズ画面 */
+        .timer-bar { width: 100%; height: 8px; background: #E5E5EA; border-radius: 4px; margin-bottom: 20px; overflow: hidden; }
         .timer-fill { height: 100%; background: var(--apple-blue); width: 100%; transition: width 0.1s linear; }
-
-        .question-text { font-size: 28px; font-weight: bold; text-align: center; margin-bottom: 10px; }
-        .pronounce-btn { background: none; border: none; font-size: 24px; cursor: pointer; display: block; margin: 0 auto 20px; }
-
+        .q-text { font-size: 32px; font-weight: bold; margin-bottom: 20px; }
         .options { display: grid; gap: 12px; }
-        .opt-btn { padding: 16px; font-size: 18px; border: 2px solid #F2F2F7; border-radius: 15px; background: white; text-align: left; transition: 0.2s; }
-        .opt-btn:active { transform: scale(0.98); }
-        .correct { background: var(--apple-green) !important; color: white; }
-        .wrong { background: var(--apple-red) !important; color: white; }
+        .opt-btn { padding: 18px; font-size: 18px; border: 2px solid #F2F2F7; border-radius: 15px; background: white; text-align: left; cursor: pointer; }
+        .correct { background: var(--apple-green) !important; color: white; border-color: var(--apple-green); }
+        .wrong { background: var(--apple-red) !important; color: white; border-color: var(--apple-red); }
 
-        /* 5. 苦手リスト表示 */
-        .mistake-list { margin-top: 30px; width: 100%; max-width: 500px; }
-        .mistake-item { background: #FFE5E5; padding: 10px; border-radius: 8px; margin-bottom: 5px; font-size: 14px; }
-        
-        .result-screen { text-align: center; display: none; }
+        /* 苦手リスト */
+        .mistake-area { margin-top: 20px; text-align: left; background: #FFF5F5; padding: 15px; border-radius: 15px; max-height: 150px; overflow-y: auto; }
+        .start-btn { background: var(--apple-blue); color: white; border: none; padding: 15px 40px; border-radius: 30px; font-size: 20px; font-weight: bold; margin-top: 20px; width: 100%; }
     </style>
 </head>
 <body>
 
-    <div class="container" id="quiz-app">
-        <div class="level-selector">
-            <button class="level-btn" onclick="setLevel('3級')">3級</button>
-            <button class="level-btn active" onclick="setLevel('準2級')">準2級</button>
-            <button class="level-btn" onclick="setLevel('2級')">2級</button>
+    <div id="home-screen" class="screen active">
+        <h1>英検クイズ マスター</h1>
+        <p>級を選択してスタートしてください</p>
+        <div class="level-grid">
+            <button class="level-btn" onclick="selectLevel('3級', this)">3級</button>
+            <button class="level-btn selected" onclick="selectLevel('準2級', this)">準2級</button>
+            <button class="level-btn" onclick="selectLevel('2級', this)">2級</button>
         </div>
+        <button class="start-btn" onclick="startQuiz()">学習開始！</button>
+    </div>
 
+    <div id="quiz-screen" class="screen">
+        <div id="current-info" style="color:#8E8E93; margin-bottom:10px;"></div>
         <div class="timer-bar"><div class="timer-fill" id="timer"></div></div>
-
-        <div id="quiz-content">
-            <button class="pronounce-btn" onclick="speak()">🔊 読み上げ</button>
-            <div class="question-text" id="q-text">Word</div>
-            <div class="options" id="options"></div>
-        </div>
-
-        <div class="result-screen" id="result-screen">
-            <h2>お疲れ様でした！</h2>
-            <p id="final-score"></p>
-            <button class="opt-btn" style="width:100%; text-align:center" onclick="resetQuiz()">もう一度挑戦</button>
-        </div>
+        <button onclick="speak()" style="background:none; border:none; font-size:24px; cursor:pointer;">🔊 再生</button>
+        <div class="q-text" id="q-text">Loading...</div>
+        <div class="options" id="options"></div>
     </div>
 
-    <div class="mistake-list">
-        <h3>❌ 復習が必要な単語 (5. 苦手リスト)</h3>
-        <div id="mistakes"></div>
+    <div id="result-screen" class="screen">
+        <h1>結果発表</h1>
+        <h2 id="final-score" style="font-size: 40px; color: var(--apple-blue);"></h2>
+        <div id="mistake-list" class="mistake-area"></div>
+        <button class="start-btn" onclick="goToHome()">ホームに戻る</button>
     </div>
+
+    <script src="data.js"></script>
 
     <script>
-        // 級ごとの単語データ（ここを増やすことで1000語に対応可能）
-        const dictionary = {
-            "3級": [
-                {q: "Adventure", a: "冒険", d: ["休息", "貿易", "計算"]},
-                {q: "Environment", a: "環境", d: ["政府", "設備", "招待"]},
-                {q: "Patient", a: "忍耐強い", d: ["活発な", "有名な", "高価な"]}
-            ],
-            "準2級": [
-                {q: "Appropriate", a: "適切な", d: ["突然の", "正確な", "複雑な"]},
-                {q: "Describe", a: "〜を描写する", d: ["〜を破壊する", "〜を無視する", "〜を予約する"]},
-                {q: "Opportunity", a: "機会", d: ["反対", "結論", "責任"]}
-            ],
-            "2級": [
-                {q: "Analyze", a: "〜を分析する", d: ["〜に耐える", "〜を強調する", "〜を維持する"]},
-                {q: "Consequence", a: "結果", d: ["意識", "自信", "貢献"]},
-                {q: "Sustainable", a: "持続可能な", d: ["実用的な", "目立つ", "避けられない"]}
-            ]
+        // 予備データ（data.js が読み込めなかった時用）
+        const backupData = {
+            "3級": [{q: "Achieve", a: "〜を達成する", d: ["〜を捨てる", "〜を借りる", "〜を避ける"]}],
+            "準2級": [{q: "Appropriate", a: "適切な", d: ["突然の", "正確な", "複雑な"]}],
+            "2級": [{q: "Accurate", a: "正確な", d: ["貴重な", "適切な", "複雑な"]}]
         };
 
         let currentLevel = "準2級";
         let currentIdx = 0;
         let score = 0;
-        let timeLeft = 100;
         let timerInterval;
-        let mistakeWords = new Set();
+        let timeLeft = 100;
+        let currentMistakes = [];
 
-        function setLevel(lvl) {
+        // 級の選択
+        function selectLevel(lvl, btn) {
             currentLevel = lvl;
-            document.querySelectorAll('.level-btn').forEach(b => b.classList.toggle('active', b.innerText === lvl));
-            resetQuiz();
+            document.querySelectorAll('.level-btn').forEach(b => b.classList.remove('selected'));
+            btn.classList.add('selected');
+        }
+
+        // クイズ開始
+        function startQuiz() {
+            showScreen('quiz-screen');
+            currentIdx = 0;
+            score = 0;
+            currentMistakes = [];
+            document.getElementById('mistake-list').innerHTML = '<h3>復習リスト</h3>';
+            loadQuestion();
         }
 
         function loadQuestion() {
-            clearInterval(timerInterval);
-            startTimer();
+            // data.js があればそちらを、なければ backupData を使用
+            const db = (typeof dictionary !== 'undefined') ? dictionary : backupData;
+            const questions = db[currentLevel];
             
-            const data = dictionary[currentLevel][currentIdx];
+            if (currentIdx >= questions.length) {
+                showResult();
+                return;
+            }
+
+            const data = questions[currentIdx];
+            document.getElementById('current-info').innerText = `${currentLevel} - 第 ${currentIdx + 1} 問 / 全 ${questions.length} 問`;
             document.getElementById('q-text').innerText = data.q;
             
             const opts = [data.a, ...data.d].sort(() => Math.random() - 0.5);
@@ -116,91 +124,78 @@
                 const btn = document.createElement('button');
                 btn.className = 'opt-btn';
                 btn.innerText = opt;
-                btn.onclick = () => checkAnswer(opt === data.a, btn);
+                btn.onclick = () => checkAnswer(opt === data.a, btn, data);
                 container.appendChild(btn);
             });
-            
-            // 自動読み上げ
+
+            startTimer();
             setTimeout(speak, 500);
         }
 
-        // 2. 音声読み上げ
-        function speak() {
-            const uttr = new SpeechSynthesisUtterance(document.getElementById('q-text').innerText);
-            uttr.lang = 'en-US';
-            window.speechSynthesis.speak(uttr);
-        }
-
-        // 4. タイマー機能
         function startTimer() {
+            clearInterval(timerInterval);
             timeLeft = 100;
             timerInterval = setInterval(() => {
-                timeLeft -= 1.5;
+                timeLeft -= 1.0; // 約10秒で終了
                 document.getElementById('timer').style.width = timeLeft + "%";
                 if (timeLeft <= 0) {
                     clearInterval(timerInterval);
-                    checkAnswer(false, null);
+                    checkAnswer(false, null, (typeof dictionary !== 'undefined' ? dictionary : backupData)[currentLevel][currentIdx]);
                 }
             }, 100);
         }
 
-        function checkAnswer(isCorrect, btn) {
+        function checkAnswer(isCorrect, btn, data) {
             clearInterval(timerInterval);
-            const data = dictionary[currentLevel][currentIdx];
-            
+            const buttons = document.querySelectorAll('.opt-btn');
+            buttons.forEach(b => b.disabled = true);
+
             if (isCorrect) {
                 if(btn) btn.classList.add('correct');
                 score++;
             } else {
                 if(btn) btn.classList.add('wrong');
-                // 5. 苦手リストに追加
-                addMistake(data.q, data.a);
+                currentMistakes.push(`${data.q} : ${data.a}`);
+                // 正解を表示
+                buttons.forEach(b => { if(b.innerText === data.a) b.classList.add('correct'); });
             }
 
             setTimeout(() => {
                 currentIdx++;
-                if (currentIdx < dictionary[currentLevel].length) {
-                    loadQuestion();
-                } else {
-                    showResult();
-                }
-            }, 1000);
+                loadQuestion();
+            }, 1200);
         }
 
-        function addMistake(q, a) {
-            if (!mistakeWords.has(q)) {
-                mistakeWords.add(q);
-                const div = document.createElement('div');
-                div.className = 'mistake-item';
-                div.innerText = `${q} : ${a}`;
-                document.getElementById('mistakes').appendChild(div);
-            }
+        function speak() {
+            const word = document.getElementById('q-text').innerText;
+            const uttr = new SpeechSynthesisUtterance(word);
+            uttr.lang = 'en-US';
+            speechSynthesis.speak(uttr);
         }
 
         function showResult() {
-            document.getElementById('quiz-content').style.display = 'none';
-            document.getElementById('result-screen').style.display = 'block';
-            document.getElementById('final-score').innerText = `${dictionary[currentLevel].length}問中 ${score}問正解！`;
+            showScreen('result-screen');
+            document.getElementById('final-score').innerText = `${score} 点`;
+            const mList = document.getElementById('mistake-list');
+            if(currentMistakes.length === 0) {
+                mList.innerHTML += "<p>全問正解！素晴らしい！</p>";
+            } else {
+                currentMistakes.forEach(m => {
+                    const div = document.createElement('div');
+                    div.style.padding = "5px 0";
+                    div.innerText = "❌ " + m;
+                    mList.appendChild(div);
+                });
+            }
         }
 
-        function resetQuiz() {
-            currentIdx = 0;
-            score = 0;
-            document.getElementById('quiz-content').style.display = 'block';
-            document.getElementById('result-screen').style.display = 'none';
-            loadQuestion();
+        function showScreen(id) {
+            document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+            document.getElementById(id).classList.add('active');
         }
 
-        loadQuestion();
+        function goToHome() { showScreen('home-screen'); }
+
     </script>
 </body>
 </html>
-
-...
-<body>
-    ...
-    <script src="data.js"></script> <script>
-        
-        ...
-    </script>
-</body>
