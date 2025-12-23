@@ -167,11 +167,37 @@
         }
 
         function speak() {
-            const word = document.getElementById('q-text').innerText;
-            const uttr = new SpeechSynthesisUtterance(word);
-            uttr.lang = 'en-US';
-            speechSynthesis.speak(uttr);
-        }
+    const word = document.getElementById('q-text').innerText;
+    
+    // 読み上げの準備
+    const uttr = new SpeechSynthesisUtterance(word);
+    
+    // 利用可能な音声リストを取得
+    const voices = speechSynthesis.getVoices();
+    
+    // iPad/iPhoneで最もクリアな英語音声 (SamanthaやDanielなど) を探す
+    const preferredVoice = voices.find(voice => 
+        (voice.name.includes('Samantha') || voice.name.includes('Daniel') || voice.name.includes('Karen')) 
+        && voice.lang.includes('en')
+    );
+
+    if (preferredVoice) {
+        uttr.voice = preferredVoice;
+    }
+
+    uttr.lang = 'en-US'; // アメリカ英語に設定
+    uttr.rate = 0.9;     // 速度：少しだけゆっくり（聞き取りやすく）
+    uttr.pitch = 1.0;    // 高さ：標準
+
+    // 前の読み上げが残っていたらキャンセルして即座に再生
+    speechSynthesis.cancel();
+    speechSynthesis.speak(uttr);
+}
+
+// 最初の起動時に音声を準備する（ブラウザのバグ対策）
+speechSynthesis.onvoiceschanged = () => {
+    speechSynthesis.getVoices();
+};
 
         function showResult() {
             showScreen('result-screen');
