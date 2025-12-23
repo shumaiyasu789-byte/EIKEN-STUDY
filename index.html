@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>英検クイズ マスター</title>
+    <title>英検クイズ マスター - 履歴機能付き</title>
     <style>
         :root {
             --apple-blue: #007AFF;
@@ -15,10 +15,13 @@
         .screen { width: 100%; max-width: 500px; display: none; background: white; padding: 30px; border-radius: 25px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); text-align: center; box-sizing: border-box; }
         .active { display: block; animation: fadeIn 0.3s ease; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        
         h1 { color: #1C1C1E; font-size: 28px; margin-bottom: 10px; }
-        .level-grid { display: grid; gap: 15px; margin-bottom: 30px; }
-        .level-btn { padding: 20px; font-size: 20px; font-weight: bold; border-radius: 15px; border: 2px solid var(--apple-blue); background: white; color: var(--apple-blue); cursor: pointer; }
+        .level-grid { display: grid; gap: 10px; margin-bottom: 20px; }
+        .level-btn { padding: 15px; font-size: 18px; font-weight: bold; border-radius: 12px; border: 2px solid var(--apple-blue); background: white; color: var(--apple-blue); cursor: pointer; }
         .level-btn.selected { background: var(--apple-blue); color: white; }
+
+        /* タイマー・クイズ装飾 */
         .timer-bar { width: 100%; height: 8px; background: #E5E5EA; border-radius: 4px; margin-bottom: 20px; overflow: hidden; }
         .timer-fill { height: 100%; background: var(--apple-blue); width: 100%; transition: width 0.1s linear; }
         .q-text { font-size: 32px; font-weight: bold; margin-bottom: 20px; }
@@ -26,21 +29,30 @@
         .opt-btn { padding: 18px; font-size: 18px; border: 2px solid #F2F2F7; border-radius: 15px; background: white; text-align: left; cursor: pointer; }
         .correct { background: var(--apple-green) !important; color: white; border-color: var(--apple-green); }
         .wrong { background: var(--apple-red) !important; color: white; border-color: var(--apple-red); }
-        .mistake-area { margin-top: 20px; text-align: left; background: #FFF5F5; padding: 15px; border-radius: 15px; max-height: 200px; overflow-y: auto; }
+
+        /* 履歴・復習エリア */
+        .history-area, .mistake-area { margin-top: 20px; text-align: left; background: #f9f9fb; padding: 15px; border-radius: 15px; border: 1px solid #e5e5ea; }
+        .history-item { font-size: 14px; padding: 5px 0; border-bottom: 1px solid #eee; display: flex; justify-content: space-between; }
         .start-btn { background: var(--apple-blue); color: white; border: none; padding: 15px 40px; border-radius: 30px; font-size: 20px; font-weight: bold; width: 100%; margin-top: 10px; }
+        .clear-btn { background: none; border: none; color: var(--apple-red); font-size: 12px; cursor: pointer; margin-top: 10px; }
     </style>
 </head>
 <body>
 
     <div id="home-screen" class="screen active">
         <h1>英検クイズ マスター</h1>
-        <p>級を選択してください</p>
         <div class="level-grid">
             <button class="level-btn" onclick="selectLevel('3級', this)">3級</button>
             <button class="level-btn selected" onclick="selectLevel('準2級', this)">準2級</button>
             <button class="level-btn" onclick="selectLevel('2級', this)">2級</button>
         </div>
         <button class="start-btn" onclick="startQuiz()">学習開始！</button>
+
+        <div class="history-area">
+            <h3 style="margin-top:0;">📊 学習履歴</h3>
+            <div id="history-list">履歴はまだありません</div>
+            <button class="clear-btn" onclick="clearHistory()">履歴をリセット</button>
+        </div>
     </div>
 
     <div id="quiz-screen" class="screen">
@@ -59,7 +71,7 @@
     </div>
 
     <script>
-        // 【ここに全ての単語データを合体させました】
+        // 単語データ
         const dictionary = {
             "3級": [
                 {q: "Achieve", a: "〜を達成する", d: ["〜を捨てる", "〜を借りる", "〜を避ける"]},
@@ -72,7 +84,6 @@
                 {q: "Government", a: "政府", d: ["会社", "学校", "市場"]},
                 {q: "Healthy", a: "健康な", d: ["危険な", "裕福な", "静かな"]},
                 {q: "Improve", a: "〜を改善する", d: ["〜を汚す", "〜を止める", "〜を隠す"]}
-                // ...ここにさらに追加可能
             ],
             "準2級": [
                 {q: "Appropriate", a: "適切な", d: ["突然の", "正確な", "複雑な"]},
@@ -98,6 +109,9 @@
         let timeLeft = 100;
         let currentMistakes = [];
 
+        // ページ読み込み時に履歴を表示
+        window.onload = updateHistoryDisplay;
+
         function selectLevel(lvl, btn) {
             currentLevel = lvl;
             document.querySelectorAll('.level-btn').forEach(b => b.classList.remove('selected'));
@@ -106,16 +120,15 @@
 
         function startQuiz() {
             showScreen('quiz-screen');
-            currentIdx = 0;
-            score = 0;
-            currentMistakes = [];
-            document.getElementById('mistake-list').innerHTML = '<h3>復習リスト</h3>';
+            currentIdx = 0; score = 0; currentMistakes = [];
+            document.getElementById('mistake-list').innerHTML = '<h3>今回のミス単語</h3>';
             loadQuestion();
         }
 
         function loadQuestion() {
             const questions = dictionary[currentLevel];
             if (currentIdx >= questions.length) {
+                saveResult(); // 結果を保存
                 showResult();
                 return;
             }
@@ -166,24 +179,65 @@
         function speak() {
             const word = document.getElementById('q-text').innerText;
             const uttr = new SpeechSynthesisUtterance(word);
-            const voices = speechSynthesis.getVoices();
-            const preferredVoice = voices.find(v => (v.name.includes('Samantha') || v.name.includes('Daniel')) && v.lang.includes('en'));
-            if (preferredVoice) uttr.voice = preferredVoice;
             uttr.lang = 'en-US';
             uttr.rate = 0.85; 
             speechSynthesis.cancel();
             speechSynthesis.speak(uttr);
         }
 
+        // 履歴の保存
+        function saveResult() {
+            const history = JSON.parse(localStorage.getItem('eiken_history') || '[]');
+            const now = new Date();
+            const dateStr = `${now.getMonth()+1}/${now.getDate()} ${now.getHours()}:${now.getMinutes().toString().padStart(2, '0')}`;
+            
+            history.unshift({
+                date: dateStr,
+                level: currentLevel,
+                score: score,
+                total: dictionary[currentLevel].length
+            });
+
+            // 最新10件まで保存
+            localStorage.setItem('eiken_history', JSON.stringify(history.slice(0, 10)));
+            updateHistoryDisplay();
+        }
+
+        function updateHistoryDisplay() {
+            const history = JSON.parse(localStorage.getItem('eiken_history') || '[]');
+            const list = document.getElementById('history-list');
+            if (history.length === 0) {
+                list.innerHTML = '履歴はまだありません';
+                return;
+            }
+            list.innerHTML = history.map(item => `
+                <div class="history-item">
+                    <span>${item.date} [${item.level}]</span>
+                    <strong>${item.score} / ${item.total}</strong>
+                </div>
+            `).join('');
+        }
+
+        function clearHistory() {
+            if(confirm('履歴をすべて消去しますか？')) {
+                localStorage.removeItem('eiken_history');
+                updateHistoryDisplay();
+            }
+        }
+
         function showResult() {
             showScreen('result-screen');
             document.getElementById('final-score').innerText = `${score} / ${dictionary[currentLevel].length}`;
             const mList = document.getElementById('mistake-list');
-            currentMistakes.forEach(m => {
-                const div = document.createElement('div');
-                div.innerText = "❌ " + m;
-                mList.appendChild(div);
-            });
+            if(currentMistakes.length === 0) {
+                mList.innerHTML += "<p>満点！天才です！</p>";
+            } else {
+                currentMistakes.forEach(m => {
+                    const div = document.createElement('div');
+                    div.innerText = "❌ " + m;
+                    mList.appendChild(div);
+                });
+            }
         }
 
         function showScreen(id) {
@@ -192,8 +246,6 @@
         }
 
         function goToHome() { showScreen('home-screen'); }
-
-        speechSynthesis.onvoiceschanged = () => { speechSynthesis.getVoices(); };
     </script>
 </body>
 </html>
