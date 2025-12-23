@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>英検マスター Pro - 完全版</title>
+    <title>英検マスター Pro - タイムアタック版</title>
     <style>
         :root {
             --apple-blue: #007AFF;
@@ -17,17 +17,16 @@
         .active { display: block; animation: fadeIn 0.3s ease; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
         
-        /* 判定アイコン */
         #feedback-icon { font-size: 100px; position: absolute; top: 40%; left: 50%; transform: translate(-50%, -50%); pointer-events: none; opacity: 0; z-index: 100; transition: 0.2s; }
         .show-feedback { opacity: 0.9 !important; transform: translate(-50%, -50%) scale(1.2) !important; }
 
         .level-btn { padding: 15px; font-size: 18px; font-weight: bold; border-radius: 12px; border: 2px solid var(--apple-blue); background: white; color: var(--apple-blue); cursor: pointer; margin-bottom: 10px; width: 100%; transition: 0.2s; }
         .level-btn.selected { background: var(--apple-blue); color: white; }
 
-        .timer-bar { width: 100%; height: 8px; background: #E5E5EA; border-radius: 4px; margin-bottom: 20px; overflow: hidden; }
-        .timer-fill { height: 100%; background: var(--apple-blue); width: 100%; }
+        .timer-bar { width: 100%; height: 10px; background: #E5E5EA; border-radius: 5px; margin-bottom: 20px; overflow: hidden; }
+        .timer-fill { height: 100%; background: var(--apple-green); width: 100%; transition: width 0.1s linear; }
         
-        .q-text { font-size: 38px; font-weight: bold; margin-bottom: 20px; color: #1C1C1E; position: relative; }
+        .q-text { font-size: 38px; font-weight: bold; margin-bottom: 20px; color: #1C1C1E; position: relative; min-height: 60px; }
         .options { display: grid; gap: 12px; }
         .opt-btn { padding: 18px; font-size: 18px; border: 2px solid #F2F2F7; border-radius: 15px; background: white; text-align: left; cursor: pointer; transition: 0.1s; }
         .correct { background: var(--apple-green) !important; color: white !important; border-color: var(--apple-green) !important; }
@@ -35,8 +34,11 @@
 
         .history-area { margin-top: 20px; text-align: left; background: #f9f9fb; padding: 15px; border-radius: 15px; font-size: 13px; border: 1px solid #eee; }
         .start-btn { background: var(--apple-blue); color: white; border: none; padding: 18px; border-radius: 30px; font-size: 20px; font-weight: bold; width: 100%; margin-top: 10px; cursor: pointer; box-shadow: 0 4px 15px rgba(0,122,255,0.3); }
-        .badge { font-size: 14px; background: var(--apple-orange); color: white; padding: 2px 10px; border-radius: 10px; vertical-align: middle; margin-left: 10px; position: absolute; top: -20px; right: 0; }
-        #combo-display { font-size: 24px; font-weight: bold; color: var(--apple-orange); margin-bottom: 10px; min-height: 30px; }
+        .badge { font-size: 14px; background: var(--apple-orange); color: white; padding: 2px 10px; border-radius: 10px; position: absolute; top: -25px; right: 0; }
+        
+        #stats-panel { display: flex; justify-content: space-between; margin-bottom: 10px; font-weight: bold; color: #8E8E93; }
+        #stopwatch { color: var(--apple-blue); }
+        .best-time { font-size: 12px; color: var(--apple-orange); margin-top: 4px; }
     </style>
 </head>
 <body>
@@ -45,35 +47,41 @@
 
     <div id="home-screen" class="screen active">
         <h1>英検マスター Pro</h1>
-        <p style="color:#666;">AIがあなたの弱点を分析中</p>
+        <p style="color:#666;">最速の正解を目指せ！</p>
         <div id="levels">
             <button class="level-btn" onclick="selectLevel('3級', this)">3級</button>
             <button class="level-btn selected" onclick="selectLevel('準2級', this)">準2級</button>
             <button class="level-btn" onclick="selectLevel('2級', this)">2級</button>
         </div>
-        <button class="start-btn" onclick="startQuiz()">学習開始！</button>
+        <button class="start-btn" onclick="startQuiz()">タイムアタック開始！</button>
         <div class="history-area">
-            <h3 style="margin:0 0 10px 0;">📊 学習履歴</h3>
-            <div id="history-list">履歴はまだありません</div>
+            <h3 style="margin:0 0 10px 0;">🕒 級別ベストタイム (20問)</h3>
+            <div id="best-times-list"></div>
+            <h3 style="margin:15px 0 10px 0;">📊 学習履歴</h3>
+            <div id="history-list">履歴なし</div>
         </div>
     </div>
 
     <div id="quiz-screen" class="screen">
-        <div id="combo-display">0 COMBO</div>
-        <div id="current-info" style="color:#8E8E93; margin-bottom:10px;"></div>
+        <div id="stats-panel">
+            <div id="combo-display">0 COMBO</div>
+            <div id="stopwatch">00:00.00</div>
+        </div>
+        <div id="current-info" style="color:#8E8E93; margin-bottom:10px; font-size: 14px;"></div>
         <div class="timer-bar"><div class="timer-fill" id="timer"></div></div>
         <div class="q-text">
             <span id="q-word"></span>
             <span id="target-badge"></span>
         </div>
         <div class="options" id="options"></div>
-        <button onclick="speak()" style="margin-top:25px; background:none; border:none; color:var(--apple-blue); font-size:18px; cursor:pointer; font-weight:bold;">🔊 再生</button>
+        <button onclick="speak()" style="margin-top:25px; background:none; border:none; color:var(--apple-blue); font-size:18px; cursor:pointer; font-weight:bold;">🔊 聞く</button>
     </div>
 
     <div id="result-screen" class="screen">
-        <h1>結果発表</h1>
-        <h2 id="final-score" style="font-size: 45px; color: var(--apple-blue); margin: 10px 0;"></h2>
-        <p id="max-combo-info" style="color:var(--apple-orange); font-weight:bold;"></p>
+        <h1 id="result-title">結果発表</h1>
+        <div id="new-record" style="display:none; color:var(--apple-orange); font-size:24px; font-weight:bold; margin-bottom:10px;">✨ NEW RECORD! ✨</div>
+        <h2 id="final-time" style="font-size: 40px; color: var(--apple-blue); margin: 5px 0;"></h2>
+        <p id="final-score" style="font-size: 20px; color: #666;"></p>
         <div id="mistake-list" style="text-align:left; background:#fff0f0; padding:15px; border-radius:15px; margin-top:20px; max-height:200px; overflow-y:auto;"></div>
         <button class="start-btn" onclick="goToHome()">ホームに戻る</button>
     </div>
@@ -82,25 +90,25 @@
         const dictionary = {
             "3級": [
                 {q: "Achieve", a: "達成する", d: ["捨てる", "借りる", "避ける"]},
-                {q: "Anxious", a: "心配して", d: ["退屈な", "勇敢な", "満足した"]},
-                {q: "Believe", a: "信じる", d: ["疑う", "忘れる", "壊す"]},
-                {q: "Century", a: "1世紀", d: ["10年間", "季節", "時代"]},
-                {q: "Decrease", a: "減少する", d: ["増加する", "移動する", "安定する"]},
-                {q: "Effort", a: "努力", d: ["結果", "才能", "運"]},
-                {q: "Foreign", a: "外国の", d: ["地元の", "現代の", "安全な"]},
-                {q: "Government", a: "政府", d: ["会社", "市場", "学校"]},
-                {q: "Healthy", a: "健康な", d: ["危険な", "静かな", "裕福な"]},
-                {q: "Improve", a: "改善する", d: ["汚す", "隠す", "止める"]},
                 {q: "Ancient", a: "古代の", d: ["現代の", "未来の", "流行の"]},
                 {q: "Baggage", a: "手荷物", d: ["チケット", "座席", "お土産"]},
                 {q: "Climate", a: "気候", d: ["天気", "温度", "季節"]},
                 {q: "Education", a: "教育", d: ["娯楽", "運動", "仕事"]},
+                {q: "Foreign", a: "外国の", d: ["地元の", "現代の", "安全な"]},
+                {q: "Healthy", a: "健康な", d: ["危険な", "静かな", "裕福な"]},
+                {q: "Improve", a: "改善する", d: ["汚す", "隠す", "止める"]},
                 {q: "Journal", a: "雑誌・日記", d: ["辞書", "手紙", "教科書"]},
                 {q: "Medicine", a: "薬", d: ["食事", "睡眠", "運動"]},
                 {q: "Ordinary", a: "普通の", d: ["珍しい", "高価な", "新しい"]},
                 {q: "Reduce", a: "減らす", d: ["増やす", "運ぶ", "守る"]},
                 {q: "Various", a: "様々な", d: ["単一の", "退屈な", "同じ"]},
-                {q: "Knowledge", a: "知識", d: ["想像", "噂", "記憶"]}
+                {q: "Knowledge", a: "知識", d: ["想像", "噂", "記憶"]},
+                {q: "History", a: "歴史", d: ["地理", "科学", "数学"]},
+                {q: "Important", a: "重要な", d: ["安全な", "簡単な", "正しい"]},
+                {q: "Necessary", a: "必要な", d: ["不要な", "便利な", "珍しい"]},
+                {q: "Opinion", a: "意見", d: ["事実", "間違い", "秘密"]},
+                {q: "Quality", a: "質", d: ["量", "形", "値段"]},
+                {q: "Standard", a: "基準", d: ["記録", "目標", "成功"]}
             ],
             "準2級": [
                 {q: "Appropriate", a: "適切な", d: ["突然の", "正確な", "複雑な"]},
@@ -115,14 +123,14 @@
                 {q: "Analyze", a: "分析する", d: ["耐える", "強調する", "維持する"]},
                 {q: "Economy", a: "経済", d: ["生態", "教育", "選挙"]},
                 {q: "Specific", a: "特定の", d: ["一般的な", "巨大な", "曖昧な"]},
-                {q: "Candidate", a: "候補者", d: ["当選者", "観客", "審判"]},
                 {q: "Facility", a: "施設・設備", d: ["自然", "道具", "才能"]},
                 {q: "Gradually", a: "徐々に", d: ["突然", "一瞬で", "永遠に"]},
-                {q: "Particular", a: "特定の", d: ["一般的な", "普通の", "珍しい"]},
                 {q: "Theory", a: "理論", d: ["実践", "事実", "空想"]},
                 {q: "Unique", a: "独特な", d: ["共通の", "普通の", "古い"]},
                 {q: "Vehicle", a: "乗り物", d: ["建物", "道", "運転手"]},
-                {q: "Persuade", a: "説得する", d: ["強制する", "警告する", "がっかりさせる"]}
+                {q: "Persuade", a: "説得する", d: ["強制する", "警告する", "がっかりさせる"]},
+                {q: "Attitude", a: "態度", d: ["高度", "能力", "大気"]},
+                {q: "Benefit", a: "利益", d: ["損失", "負担", "義務"]}
             ],
             "2級": [
                 {q: "Abolish", a: "廃止する", d: ["設立する", "維持する", "改善する"]},
@@ -150,13 +158,18 @@
 
         let currentLevel = "準2級";
         let shuffledQuestions = [];
-        let currentIdx = 0, score = 0, combo = 0, maxCombo = 0;
-        let timerInterval, timeLeft = 100, currentMistakes = [];
+        let currentIdx = 0, score = 0, combo = 0;
+        let timerInterval, timeLeft = 100;
+        let stopwatchInterval, startTime;
+        let currentMistakes = [];
+        
+        let stats = JSON.parse(localStorage.getItem('eiken_stats_v3') || '{}');
+        let bestTimes = JSON.parse(localStorage.getItem('eiken_best_times') || '{}');
 
-        // 苦手度と履歴の管理
-        let stats = JSON.parse(localStorage.getItem('eiken_stats_v2') || '{}');
-
-        window.onload = updateHistoryDisplay;
+        window.onload = () => {
+            updateHistoryDisplay();
+            updateBestTimesDisplay();
+        };
 
         function selectLevel(lvl, btn) {
             currentLevel = lvl;
@@ -166,7 +179,6 @@
 
         function startQuiz() {
             const baseWords = [...dictionary[currentLevel]];
-            // 苦手スコアが高いものを優先しつつ、20問を抽出
             shuffledQuestions = baseWords.sort((a, b) => {
                 const wA = stats[a.q] || 0;
                 const wB = stats[b.q] || 0;
@@ -174,18 +186,31 @@
             }).slice(0, 20);
 
             showScreen('quiz-screen');
-            currentIdx = 0; score = 0; combo = 0; maxCombo = 0; currentMistakes = [];
+            currentIdx = 0; score = 0; combo = 0; currentMistakes = [];
+            
+            // ストップウォッチ開始
+            startTime = Date.now();
+            stopwatchInterval = setInterval(updateStopwatch, 10);
+            
             loadQuestion();
         }
 
+        function updateStopwatch() {
+            const elapsed = Date.now() - startTime;
+            const m = Math.floor(elapsed / 60000);
+            const s = Math.floor((elapsed % 60000) / 1000);
+            const ms = Math.floor((elapsed % 1000) / 10);
+            document.getElementById('stopwatch').innerText = 
+                `${m.toString().padStart(2,'0')}:${s.toString().padStart(2,'0')}.${ms.toString().padStart(2,'0')}`;
+        }
+
         function loadQuestion() {
-            if (currentIdx >= shuffledQuestions.length) { saveResult(); showResult(); return; }
+            if (currentIdx >= shuffledQuestions.length) { finishQuiz(); return; }
             
             const data = shuffledQuestions[currentIdx];
             document.getElementById('current-info').innerText = `${currentLevel} - ${currentIdx + 1} / ${shuffledQuestions.length}`;
             document.getElementById('q-word').innerText = data.q;
             
-            // 苦手バッジ表示
             const badgeEl = document.getElementById('target-badge');
             if ((stats[data.q] || 0) >= 2) {
                 badgeEl.innerText = "苦手!";
@@ -206,7 +231,6 @@
                 container.appendChild(btn);
             });
             startTimer();
-            setTimeout(speak, 400);
         }
 
         function checkAnswer(isCorrect, btn, data) {
@@ -219,7 +243,6 @@
                 feedbackIcon.innerText = "⭕️";
                 feedbackIcon.style.color = "var(--apple-green)";
                 score++; combo++;
-                if(combo > maxCombo) maxCombo = combo;
                 if (stats[data.q] > 0) stats[data.q]--; 
             } else {
                 if(btn) btn.classList.add('wrong');
@@ -227,70 +250,102 @@
                 feedbackIcon.style.color = "var(--apple-red)";
                 combo = 0;
                 currentMistakes.push(`${data.q} : ${data.a}`);
-                stats[data.q] = (stats[data.q] || 0) + 2; // 苦手スコア加算
+                stats[data.q] = (stats[data.q] || 0) + 2;
                 document.querySelectorAll('.opt-btn').forEach(b => { if(b.innerText === data.a) b.classList.add('correct'); });
             }
             
-            localStorage.setItem('eiken_stats_v2', JSON.stringify(stats));
+            localStorage.setItem('eiken_stats_v3', JSON.stringify(stats));
             document.getElementById('combo-display').innerText = `${combo} COMBO`;
             feedbackIcon.classList.add('show-feedback');
             setTimeout(() => { 
                 feedbackIcon.classList.remove('show-feedback'); 
                 currentIdx++; 
                 loadQuestion(); 
-            }, 1000);
+            }, 800);
         }
 
         function startTimer() {
             clearInterval(timerInterval);
             timeLeft = 100;
+            const step = 100 / (15 * 10); // 15秒間 (100msごとに更新)
             timerInterval = setInterval(() => {
-                timeLeft -= 2.0; 
+                timeLeft -= step; 
                 document.getElementById('timer').style.width = timeLeft + "%";
                 if (timeLeft <= 0) { clearInterval(timerInterval); checkAnswer(false, null, shuffledQuestions[currentIdx]); }
             }, 100);
         }
 
+        function finishQuiz() {
+            clearInterval(stopwatchInterval);
+            clearInterval(timerInterval);
+            const finalTimeStr = document.getElementById('stopwatch').innerText;
+            const finalTimeMs = Date.now() - startTime;
+            
+            let isNewRecord = false;
+            // 全問正解のときのみベストタイムを更新
+            if (score === shuffledQuestions.length) {
+                if (!bestTimes[currentLevel] || finalTimeMs < bestTimes[currentLevel].ms) {
+                    bestTimes[currentLevel] = { str: finalTimeStr, ms: finalTimeMs };
+                    localStorage.setItem('eiken_best_times', JSON.stringify(bestTimes));
+                    isNewRecord = true;
+                }
+            }
+
+            saveHistory(finalTimeStr);
+            showResult(finalTimeStr, isNewRecord);
+        }
+
+        function saveHistory(timeStr) {
+            const history = JSON.parse(localStorage.getItem('eiken_history_v3') || '[]');
+            history.unshift({ date: new Date().toLocaleString(), level: currentLevel, score, time: timeStr });
+            localStorage.setItem('eiken_history_v3', JSON.stringify(history.slice(0, 5)));
+            updateHistoryDisplay();
+            updateBestTimesDisplay();
+        }
+
+        function showResult(timeStr, isNewRecord) {
+            showScreen('result-screen');
+            document.getElementById('final-time').innerText = timeStr;
+            document.getElementById('final-score').innerText = `正解数: ${score} / 20`;
+            document.getElementById('new-record').style.display = isNewRecord ? 'block' : 'none';
+            
+            const mList = document.getElementById('mistake-list');
+            mList.innerHTML = '<h3>今回のミス</h3>';
+            if(currentMistakes.length === 0) mList.innerHTML += "<p>パーフェクト！</p>";
+            currentMistakes.forEach(m => { const d = document.createElement('div'); d.innerText = "❌ " + m; mList.appendChild(d); });
+        }
+
+        function updateHistoryDisplay() {
+            const history = JSON.parse(localStorage.getItem('eiken_history_v3') || '[]');
+            document.getElementById('history-list').innerHTML = history.length ? history.map(i => 
+                `<div style="padding:5px 0; border-bottom:1px solid #eee; display:flex; justify-content:space-between; font-size:11px;">
+                    <span>${i.level} (${i.score}/20)</span><span>${i.time}</span>
+                </div>`).join('') : '履歴なし';
+        }
+
+        function updateBestTimesDisplay() {
+            const levels = ['3級', '準2級', '2級'];
+            document.getElementById('best-times-list').innerHTML = levels.map(lvl => 
+                `<div style="display:flex; justify-content:space-between; margin-bottom:5px;">
+                    <span>${lvl}:</span>
+                    <span style="font-weight:bold; color:var(--apple-blue);">${bestTimes[lvl] ? bestTimes[lvl].str : '--:--.--'}</span>
+                </div>`).join('');
+        }
+
         function speak() {
             const word = document.getElementById('q-word').innerText;
             const uttr = new SpeechSynthesisUtterance(word);
-            const voices = speechSynthesis.getVoices();
-            const preferred = voices.find(v => (v.name.includes('Samantha') || v.name.includes('Daniel')) && v.lang.includes('en'));
-            if (preferred) uttr.voice = preferred;
             uttr.lang = 'en-US';
             uttr.rate = 0.85;
             speechSynthesis.cancel();
             speechSynthesis.speak(uttr);
         }
 
-        function saveResult() {
-            const history = JSON.parse(localStorage.getItem('eiken_history_v2') || '[]');
-            const now = new Date();
-            const dateStr = `${now.getMonth()+1}/${now.getDate()} ${now.getHours()}:${now.getMinutes().toString().padStart(2,'0')}`;
-            history.unshift({ date: dateStr, level: currentLevel, score, total: shuffledQuestions.length });
-            localStorage.setItem('eiken_history_v2', JSON.stringify(history.slice(0, 5)));
-            updateHistoryDisplay();
+        function showScreen(id) { 
+            document.querySelectorAll('.screen').forEach(s => s.classList.remove('active')); 
+            document.getElementById(id).classList.add('active'); 
         }
-
-        function updateHistoryDisplay() {
-            const history = JSON.parse(localStorage.getItem('eiken_history_v2') || '[]');
-            const list = document.getElementById('history-list');
-            list.innerHTML = history.length ? history.map(i => `<div style="padding:5px 0; border-bottom:1px solid #eee; display:flex; justify-content:space-between;"><span>${i.date} [${i.level}]</span><b>${i.score}/${i.total}</b></div>`).join('') : '履歴なし';
-        }
-
-        function showResult() {
-            showScreen('result-screen');
-            document.getElementById('final-score').innerText = `${score} / ${shuffledQuestions.length}`;
-            document.getElementById('max-combo-info').innerText = `最高コンボ: ${maxCombo}`;
-            const mList = document.getElementById('mistake-list');
-            mList.innerHTML = '<h3>ミスした単語</h3>';
-            if(currentMistakes.length === 0) mList.innerHTML += "<p>満点！素晴らしい！</p>";
-            currentMistakes.forEach(m => { const d = document.createElement('div'); d.innerText = "❌ " + m; mList.appendChild(d); });
-        }
-
-        function showScreen(id) { document.querySelectorAll('.screen').forEach(s => s.classList.remove('active')); document.getElementById(id).classList.add('active'); }
         function goToHome() { showScreen('home-screen'); }
-        speechSynthesis.onvoiceschanged = () => { speechSynthesis.getVoices(); };
     </script>
 </body>
 </html>
